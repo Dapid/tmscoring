@@ -29,9 +29,14 @@ class Aligning(object):
         else:
             raise ValueError('Unrecognised mode {}'.format(mode))
 
-        # Estimate d0 as TMScore does.
+        # Estimate d0 as TMscore does.
         d0 = 1.24 * (self.N - 15)**(1.0/3.0) - 1.8
         self.d02 = d0 ** 2
+
+        self._values = dict(dx=0, dy=0, dz=0, theta=0, phi=0, psi=0)
+
+    def __call__(self, theta, phi, psi, dx, dy, dz):
+        raise NotImplementedError('This method should be overriden by subclasses')
 
     def get_default_values(self):
         """
@@ -47,8 +52,8 @@ class Aligning(object):
         # C->N vector
         vec1 = self.coord1[:-1, 1] - self.coord1[:-1, -1]
         vec2 = self.coord2[:-1, 1] - self.coord2[:-1, -1]
-        vec1 = vec1 / np.linalg.norm(vec1)
-        vec2 = vec2 / np.linalg.norm(vec2)
+        vec1 /= np.linalg.norm(vec1)
+        vec2 /= np.linalg.norm(vec2)
 
         # Find the rotation matrix that converts vec1 to vec2:
         # http://math.stackexchange.com/questions/180418/#476311
@@ -107,6 +112,23 @@ class Aligning(object):
         matrix[3, 3] = 1.
         return matrix
 
+    def optimise(self, restart=True):
+        if restart:
+            default = self.get_default_values()
+        else:
+            default = self.get_current_values()
+
+        m = iminuit.Minuit(self, error_theta=0.1, error_phi=0.1, error_psi=0.1,
+                           error_dx=1, error_dy=1, error_dz=1, print_level=0, pedantic=False,
+                           **default)
+        m.migrad()
+
+        _values = m.values
+        self._values = _values
+        return _values, self.tmscore(**_values), self.rmsd(**_values)
+
+    def get_current_values(self):
+        return self._values
 
     def _tm(self, theta, phi, psi, dx, dy, dz):
         """
@@ -200,16 +222,19 @@ class Aligning(object):
         structure1 = parser.get_structure(chain1, self.pdb1)
         structure2 = parser.get_structure(chain2, self.pdb2)
 
-        indexes1 = set(r.id[1] for r in structure1.get_residues())
-        indexes2 = set(r.id[1] for r in structure2.get_residues())
+        residues1 = list(structure1.get_residues())
+        residues2 = list(structure2.get_residues())
+
+        indexes1 = set(r.id[1] for r in residues1)
+        indexes2 = set(r.id[1] for r in residues2)
 
         indexes = indexes1.intersection(indexes2)
         coord1 = np.hstack([np.concatenate((r['CA'].get_coord(), (1,)))[:, None]
-                            for r in structure1.get_residues()
+                            for r in residues1
                             if r.id[1] in indexes and 'CA' in r]).astype(DTYPE,
                                                                    copy=False)
         coord2 = np.hstack([np.concatenate((r['CA'].get_coord(), (1,)))[:, None]
-                            for r in structure2.get_residues()
+                            for r in residues2
                             if r.id[1] in indexes and 'CA' in r]).astype(DTYPE,
                                                                    copy=False)
 
@@ -240,13 +265,21 @@ class RMSDscoring(Aligning):
     def default_errordef():
         return 0.05
 
+def get_tm(pdb1, pdb2):
+    tm_sc = TMscoring(pdb1, pdb2)
+    return tm_sc.optimise()[1]
+
+def get_rmsd(pdb1, pdb2):
+    rmsd_sc = RMSDscoring(pdb1, pdb2)
+    return rmsd_sc.optimise()[2]
+
 
 if __name__ == '__main__':
     import os
     import time
 
-    pdb1 = 'tests/1A3A.B999920013.pdb'
-    pdb2 = 'tests/1A3A.B999920014.pdb'
+    pdb1 = 'tests/pdb1.pdb'
+    pdb2 = 'tests/pdb2.pdb'
     sc = TMscoring(pdb1, pdb1)
     assert sc.tmscore(0, 0, 0, 0, 0, 0) == 1
 
