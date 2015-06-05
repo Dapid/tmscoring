@@ -1,8 +1,16 @@
 from __future__ import division
+
+import os
+import sys
+import subprocess
+import distutils
+
 import tmscoring
 
 import numpy as np
 from numpy.testing import assert_almost_equal, TestCase
+from nose.exc import SkipTest
+
 
 
 class TestAligningBase(TestCase):
@@ -40,3 +48,29 @@ class TestAligningBase(TestCase):
         assert align_object.coord1.shape[0] == 4
         assert align_object.coord2.shape[0] == 4
         assert align_object.coord1.shape == align_object.coord2.shape
+
+def test_identity():
+    sc = tmscoring.TMscoring('pdb1.pdb', 'pdb1.pdb')
+    assert sc.tmscore(0, 0, 0, 0, 0, 0) == 1
+
+    sc = tmscoring.RMSDscoring('pdb1.pdb', 'pdb1.pdb')
+    assert sc.rmsd(0, 0, 0, 0, 0, 0) == 0.0
+
+
+def test_tm_output():
+    if not distutils.spawn.find_executable('TMscore'):
+        raise SkipTest('TMscore is not installed in the system.')
+
+    pdb1,pdb2 = 'pdb1.pdb', 'pdb2.pdb'
+    sc = tmscoring.TMscoring(pdb1, pdb2)
+    _, tm, rmsd = sc.optimise()
+
+    p = subprocess.Popen('TMscore {} {} | grep TM-score | grep d0'.format(pdb1, pdb2),
+                         stdout=subprocess.PIPE, shell=True)
+    ref_tm = float(p.communicate()[0].split('=')[1].split('(')[0])
+    assert_almost_equal(ref_tm, tm, decimal=2)
+
+    p = subprocess.Popen('TMscore {} {} | grep RMSD | grep common'.format(pdb1, pdb2),
+                         stdout=subprocess.PIPE, shell=True)
+    ref_rmsd = float(p.communicate()[0].split('=')[1])
+    assert abs(ref_rmsd - rmsd) < 0.1
