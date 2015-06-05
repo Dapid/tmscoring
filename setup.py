@@ -6,5 +6,7 @@ setup(name='tmscoring', version='0.1',
       author='David Menéndez Hurtado',
       license='BSD 3-clause',
       packages=['tmscoring'],
-      requires=['numpy', 'iminuit', 'biopython']
+      requires=['numpy', 'iminuit', 'biopython'],
+      test_suite='nose.collector',
+      tests_require=['nose']
 )

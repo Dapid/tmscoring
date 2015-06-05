@@ -105,9 +105,6 @@ class Aligning(object):
         # Translation component
         matrix[:3, 3] = dx, dy, dz
         matrix[3, 3] = 1.
-
-        assert abs(np.linalg.det(rotation) - 1) < 1e-6, np.linalg.det(rotation)
-        assert abs(np.linalg.det(matrix) - 1) < 1e-6, np.linalg.det(matrix)
         return matrix
 
 
@@ -120,12 +117,9 @@ class Aligning(object):
         dist = coord - self.coord1
 
         d_i2 = (dist * dist).sum(axis=0)
-        assert d_i2.shape[0] == self.N
-        assert np.allclose(coord[-1, :], 1, rtol=0, atol=1e-9), coord[-1, :]
-        assert np.allclose(dist[-1, :], 0, rtol=0, atol=1e-9), dist[-1, :]
 
         tm = -(1 / (1 + (d_i2/self.d02))).sum()
-        assert 0 <= -tm / self.N <= 1, -tm / self.N
+
         return tm
 
     def _rmsd(self, theta, phi, psi, dx, dy, dz):
@@ -163,8 +157,7 @@ class Aligning(object):
                              '{:>8.3f}{:>8.3f}{:>8.3f}'.format(x, y, z),
                              line[54:]))
 
-            assert len(line2) == len(line), (len(line2), len(line))
-            out.write(line)
+            out.write(line2)
         out.close()
 
     def _load_data_alignment(self, chain1, chain2):
@@ -194,10 +187,6 @@ class Aligning(object):
                             if i in indexes and 'CA' in r]).astype(DTYPE,
                                                                    copy=False)
 
-        assert coord1.shape[0] == 4
-        assert coord2.shape[0] == 4
-        assert coord1.shape == coord2.shape
-
         self.coord1 = coord1
         self.coord2 = coord2
         self.N = len(seq1)
@@ -223,10 +212,6 @@ class Aligning(object):
                             for r in structure2.get_residues()
                             if r.id[1] in indexes and 'CA' in r]).astype(DTYPE,
                                                                    copy=False)
-
-        assert coord1.shape[0] == 4
-        assert coord2.shape[0] == 4
-        assert coord1.shape == coord2.shape
 
         self.coord1 = coord1
         self.coord2 = coord2
