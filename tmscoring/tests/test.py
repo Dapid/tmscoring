@@ -10,7 +10,6 @@ from numpy.testing import assert_almost_equal, TestCase
 from nose.exc import SkipTest
 
 
-
 class TestAligningBase(TestCase):
     def test_matrix(self):
         align_object = tmscoring.Aligning('pdb1.pdb', 'pdb2.pdb')
@@ -59,7 +58,7 @@ def test_tm_output():
     if not distutils.spawn.find_executable('TMscore'):
         raise SkipTest('TMscore is not installed in the system.')
 
-    pdb1,pdb2 = 'pdb1.pdb', 'pdb2.pdb'
+    pdb1, pdb2 = 'pdb1.pdb', 'pdb2.pdb'
     sc = tmscoring.TMscoring(pdb1, pdb2)
     _, tm, rmsd = sc.optimise()
 
@@ -72,3 +71,11 @@ def test_tm_output():
                          stdout=subprocess.PIPE, shell=True)
     ref_rmsd = float(p.communicate()[0].split('=')[1])
     assert abs(ref_rmsd - rmsd) < 0.1
+
+def test_repeated():
+    pdb1, pdb2 = 'pdbrep_1.pdb', 'pdbrep_2.pdb'
+    sc = tmscoring.TMscoring(pdb1, pdb2)
+    _, tm, rmsd = sc.optimise()
+
+    assert_almost_equal(tm, 0.27426501120343644)
+    assert_almost_equal(rmsd, 15.940038528551929)
