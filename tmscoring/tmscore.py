@@ -95,7 +95,7 @@ class Aligning(object):
         [ 0  0  0 | 1  ]
         """
         # NB!: matrix and angles by default are being overwritten on each call
-        # thus, only created once.
+        # thus, only created once at compile time.
 
         angles[0] = theta
         angles[1] = phi
