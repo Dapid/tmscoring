@@ -229,18 +229,26 @@ class Aligning(object):
         indexes2 = set(r.id[1] for r in residues2)
 
         indexes = indexes1.intersection(indexes2)
-        coord1 = np.hstack([np.concatenate((r['CA'].get_coord(), (1,)))[:, None]
-                            for r in residues1
-                            if r.id[1] in indexes and 'CA' in r]).astype(DTYPE,
-                                                                   copy=False)
-        coord2 = np.hstack([np.concatenate((r['CA'].get_coord(), (1,)))[:, None]
-                            for r in residues2
-                            if r.id[1] in indexes and 'CA' in r]).astype(DTYPE,
-                                                                   copy=False)
+        self.N = len(indexes)
+
+        coord1 = []
+        indexes1 = indexes.copy()
+        for r in residues1:
+            if r.id[1] in indexes1 and 'CA' in r:
+                coord1.append(np.concatenate((r['CA'].get_coord(), (1,)))[:, None])
+                # Remove from index to avoid repeated residues
+                indexes1.remove(r.id[1])
+        coord1 = np.hstack(coord1).astype(DTYPE, copy=False)
+
+        coord2 = []
+        for r in residues2:
+            if r.id[1] in indexes and 'CA' in r:
+                coord2.append(np.concatenate((r['CA'].get_coord(), (1,)))[:, None])
+                indexes.remove(r.id[1])
+        coord2 = np.hstack(coord2).astype(DTYPE, copy=False)
 
         self.coord1 = coord1
         self.coord2 = coord2
-        self.N = len(indexes1)
 
 
 class TMscoring(Aligning):
