@@ -22,6 +22,10 @@ class Aligning(object):
         """
         self.pdb1 = pdb_1
         self.pdb2 = pdb_2
+
+        self.chain_1 = chain_1
+        self.chain_2 = chain_2
+
         if mode == 'align':
             self._load_data_alignment(chain_1, chain_2)
         elif mode == 'index':
@@ -58,7 +62,8 @@ class Aligning(object):
         # Find the rotation matrix that converts vec1 to vec2:
         # http://math.stackexchange.com/questions/180418/#476311
         v = np.cross(vec1, vec2)
-        s = np.linalg.norm(v)
+        s = np.linalg.norm(v) + np.finfo(DTYPE).eps
+
         c = vec1.dot(vec2)
         vx = np.array([[0, -v[2], v[1]],
                        [v[2], 0, -v[0]],
@@ -156,30 +161,47 @@ class Aligning(object):
     def rmsd(self, theta, phi, psi, dx, dy, dz):
         return np.sqrt(self._rmsd(theta, phi, psi, dx, dy, dz) / self.N)
 
-    def write(self, theta, phi, psi, dx, dy, dz, outputfile='out.pdb'):
+    def write(self, outputfile='out.pdb', appended=False):
         """
         Save the second PDB file aligned to the first.
-        """
-        # TODO: save both in a single PDB file as different molecules.
 
-        matrix = self.get_matrix(theta, phi, psi, dx, dy, dz)
+        If appended is True, both are saved as different chains.
+        """
+        #FIXME some cases don't work.
+        matrix = self.get_matrix(**self.get_current_values())
 
         out = open(outputfile, 'w')
+        atomid = 1
+        if appended:
+            for line in open(self.pdb1):
+                if not line.startswith('ATOM') or (line[21] != self.chain_1 and line[21] != ' '):
+                    continue
+                out.write(line[:7])
+                out.write('{: >4}'.format(atomid))
+                atomid += 1
+                out.write(line[11:21])
+                out.write('A')
+                out.write(line[22:])
+
         for line in open(self.pdb2):
-            if not line.startswith('ATOM'):
-                out.write(line)
+            if not line.startswith('ATOM') or (line[21] != self.chain_2 and line[21] != ' '):
                 continue
+
             x = float(line[32:38])
             y = float(line[39:46])
             z = float(line[48:54])
-            vec = np.array([x, y, z, 0])
+            vec = np.array([x, y, z, 1])
             x, y, z, _ = matrix.dot(vec)
 
-            line2 = ''.join((line[:30],
-                             '{:>8.3f}{:>8.3f}{:>8.3f}'.format(x, y, z),
-                             line[54:]))
+            out.write(line[:7])
+            out.write('{: >4}'.format(atomid))
+            atomid += 1
+            out.write(line[11:21])
+            out.write('B')
+            out.write(line[22:30])
+            out.write('{:>8.3f}{:>8.3f}{:>8.3f}'.format(x, y, z))
+            out.write(line[54:])
 
-            out.write(line2)
         out.close()
 
     def _load_data_alignment(self, chain1, chain2):
@@ -280,41 +302,3 @@ def get_tm(pdb1, pdb2):
 def get_rmsd(pdb1, pdb2):
     rmsd_sc = RMSDscoring(pdb1, pdb2)
     return rmsd_sc.optimise()[2]
-
-
-if __name__ == '__main__':
-    import os
-    import time
-
-    pdb1 = 'tests/pdb1.pdb'
-    pdb2 = 'tests/pdb2.pdb'
-    sc = TMscoring(pdb1, pdb1)
-    assert sc.tmscore(0, 0, 0, 0, 0, 0) == 1
-
-    t0 = time.time()
-
-    print '----'
-    sc = TMscoring(pdb1, pdb2, mode='index')
-    sc(2, 1, -1, 0, 0, 0)
-
-    m = iminuit.Minuit(sc,
-                       error_theta=0.1, error_phi=0.1, error_psi=0.1,
-                       error_dx=1, error_dy=1, error_dz=1,
-                       print_level=0,
-                       **sc.get_default_values())
-
-    m.migrad()
-    print '**', time.time() - t0, '**'
-
-    print m.values
-    print 'TM-score =', sc.tmscore(**m.values)
-    print 'RMSD =', sc.rmsd(**m.values)
-
-    sc.write(**m.values)
-    print sc.get_matrix(**m.values)
-
-    t0 = time.time()
-    os.system('TMscore {} {} | grep TM-score | grep d0'.format(pdb1, pdb2))
-    print '*-*', time.time() - t0, '*-*'
-
-    os.system('TMscore {} {} | tail -n 20 | head -n 14'.format(pdb1, pdb2))
