@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 from setuptools import setup
 
-setup(name='tmscoring', version='0.1',
+setup(name='tmscoring', version='0.2',
       description='Python implementation of the TMscore program',
       url='https://github.com/Dapid/tmscoring',
       author='David Menéndez Hurtado',
@@ -21,3 +21,4 @@ setup(name='tmscoring', version='0.1',
                    'Development Status :: 3 - Alpha',
                    'License :: OSI Approved :: BSD License']
 )
+
