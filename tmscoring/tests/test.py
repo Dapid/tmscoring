@@ -14,7 +14,7 @@ class TestAligningBase(TestCase):
     def test_matrix(self):
         align_object = tmscoring.Aligning('pdb1.pdb', 'pdb2.pdb')
         np.random.seed(124)
-        for _ in xrange(100):
+        for _ in range(100):
             theta, phi, psi = 2 * np.pi * np.random.random(3)
             dx, dy, dz = 10 * np.random.random(3)
 
@@ -26,7 +26,7 @@ class TestAligningBase(TestCase):
     def test_tm_valuex(self):
         align_object = tmscoring.Aligning('pdb1.pdb', 'pdb2.pdb')
         np.random.seed(124)
-        for _ in xrange(100):
+        for _ in range(100):
             theta, phi, psi = 2 * np.pi * np.random.random(3)
             dx, dy, dz = 10 * np.random.random(3)
 

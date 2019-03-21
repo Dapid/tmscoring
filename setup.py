@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 from setuptools import setup
 
-setup(name='tmscoring', version='0.2',
+setup(name='tmscoring', version='0.3',
       description='Python implementation of the TMscore program',
       url='https://github.com/Dapid/tmscoring',
       author='David Menéndez Hurtado',
@@ -13,9 +13,7 @@ setup(name='tmscoring', version='0.2',
       tests_require=['nose'],
       classifiers=['Programming Language :: Python',
                    'Programming Language :: Python :: 2',
-                   'Programming Language :: Python :: 2.7',
-                   'Programming Language :: Cython',
-                   'Programming Language :: Python :: Implementation :: CPython',
+                   'Programming Language :: Python :: 3',
                    'Topic :: Scientific/Engineering :: Bio-Informatics',
                    'Intended Audience :: Science/Research',
                    'Development Status :: 3 - Alpha',

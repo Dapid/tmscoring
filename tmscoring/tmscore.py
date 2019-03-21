@@ -9,12 +9,11 @@ import iminuit
 from Bio import PDB
 from Bio import pairwise2
 
-
 DTYPE = np.float64
 
 
 class Aligning(object):
-    def __init__(self, pdb_1, pdb_2, mode='index', chain_1='A', chain_2='A'):
+    def __init__(self, pdb_1, pdb_2, mode='index', chain_1='A', chain_2='A', d0s=5.):
         """
         pdb_1, pdb_2 are the file names for the PDB files.
         Chain
@@ -34,8 +33,9 @@ class Aligning(object):
             raise ValueError('Unrecognised mode {}'.format(mode))
 
         # Estimate d0 as TMscore does.
-        d0 = 1.24 * (self.N - 15)**(1.0/3.0) - 1.8
+        d0 = 1.24 * (self.N - 15) ** (1.0 / 3.0) - 1.8
         self.d02 = d0 ** 2
+        self.d0s2 = d0s ** 2
 
         self._values = dict(dx=0, dy=0, dz=0, theta=0, phi=0, psi=0)
 
@@ -145,7 +145,21 @@ class Aligning(object):
 
         d_i2 = (dist * dist).sum(axis=0)
 
-        tm = -(1 / (1 + (d_i2/self.d02))).sum()
+        tm = -(1 / (1 + (d_i2 / self.d02)))
+
+        return tm
+
+    def _s(self, theta, phi, psi, dx, dy, dz):
+        """
+        Compute the minimisation target, not normalised.
+        """
+        matrix = self.get_matrix(theta, phi, psi, dx, dy, dz)
+        coord = matrix.dot(self.coord2)
+        dist = coord - self.coord1
+
+        d_i2 = (dist * dist).sum(axis=0)
+
+        tm = -(1 / (1 + (d_i2 / self.d0s2)))
 
         return tm
 
@@ -153,13 +167,22 @@ class Aligning(object):
         matrix = self.get_matrix(theta, phi, psi, dx, dy, dz)
         coord = matrix.dot(self.coord2)
         dist = coord - self.coord1
-        return (dist * dist).sum()
+        return (dist * dist)
 
     def tmscore(self, theta, phi, psi, dx, dy, dz):
-        return -self._tm(theta, phi, psi, dx, dy, dz) / self.N
+        return -np.mean(self._tm(theta, phi, psi, dx, dy, dz))
+
+    def tmscore_samples(self, theta, phi, psi, dx, dy, dz):
+        return -self._tm(theta, phi, psi, dx, dy, dz)
+
+    def sscore(self, theta, phi, psi, dx, dy, dz):
+        return -np.mean(self._s(theta, phi, psi, dx, dy, dz))
+
+    def sscore_samples(self, theta, phi, psi, dx, dy, dz):
+        return -self._s(theta, phi, psi, dx, dy, dz)
 
     def rmsd(self, theta, phi, psi, dx, dy, dz):
-        return np.sqrt(self._rmsd(theta, phi, psi, dx, dy, dz) / self.N)
+        return np.sqrt(np.mean(self._rmsd(theta, phi, psi, dx, dy, dz)))
 
     def write(self, outputfile='out.pdb', appended=False):
         """
@@ -167,7 +190,7 @@ class Aligning(object):
 
         If appended is True, both are saved as different chains.
         """
-        #FIXME some cases don't work.
+        # FIXME some cases don't work.
         matrix = self.get_matrix(**self.get_current_values())
 
         out = open(outputfile, 'w')
@@ -251,6 +274,7 @@ class Aligning(object):
         indexes2 = set(r.id[1] for r in residues2)
 
         indexes = indexes1.intersection(indexes2)
+        self.indexes = indexes.copy()
         self.N = len(indexes)
 
         coord1 = []
@@ -277,27 +301,45 @@ class TMscoring(Aligning):
     """
     Use this if you want to minimise for TM score
     """
+
     def __call__(self, theta, phi, psi, dx, dy, dz):
-        return self._tm(theta, phi, psi, dx, dy, dz)
+        return self._tm(theta, phi, psi, dx, dy, dz).sum()
 
     @staticmethod
     def default_errordef():
         return 0.01
 
+
+class Sscoring(Aligning):
+    """
+    Use this if you want to minimise for S score
+    """
+
+    def __call__(self, theta, phi, psi, dx, dy, dz):
+        return self._s(theta, phi, psi, dx, dy, dz).sum()
+
+    @staticmethod
+    def default_errordef():
+        return 0.01
+
+
 class RMSDscoring(Aligning):
     """
     Use this if you want to minimise for RMSD.
     """
+
     def __call__(self, theta, phi, psi, dx, dy, dz):
-        return self._rmsd(theta, phi, psi, dx, dy, dz)
+        return self._rmsd(theta, phi, psi, dx, dy, dz).sum()
 
     @staticmethod
     def default_errordef():
         return 0.05
 
+
 def get_tm(pdb1, pdb2):
     tm_sc = TMscoring(pdb1, pdb2)
     return tm_sc.optimise()[1]
+
 
 def get_rmsd(pdb1, pdb2):
     rmsd_sc = RMSDscoring(pdb1, pdb2)
