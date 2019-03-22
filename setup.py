@@ -6,7 +6,7 @@ this_directory = path.abspath(path.dirname(__file__))
 with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
-setup(name='tmscoring', version='0.4',
+setup(name='tmscoring', version='0.4.post0',
       description='Python implementation of the TMscore program',
       url='https://github.com/Dapid/tmscoring',
       author='David Menéndez Hurtado',
@@ -23,7 +23,7 @@ setup(name='tmscoring', version='0.4',
                    'Programming Language :: Python :: 3',
                    'Topic :: Scientific/Engineering :: Bio-Informatics',
                    'Intended Audience :: Science/Research',
-                   'Development Status :: 3 - Alpha',
+                   'Development Status :: 4 - Beta',
                    'License :: OSI Approved :: BSD License']
 )
 
