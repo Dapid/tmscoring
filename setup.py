@@ -1,5 +1,10 @@
 # -*- coding: utf8 -*-
 from setuptools import setup
+from os import path
+
+this_directory = path.abspath(path.dirname(__file__))
+with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
+    long_description = f.read()
 
 setup(name='tmscoring', version='0.3',
       description='Python implementation of the TMscore program',
@@ -11,6 +16,8 @@ setup(name='tmscoring', version='0.3',
       requires=['numpy', 'iminuit', 'biopython'],
       test_suite='nose.collector',
       tests_require=['nose'],
+      long_description=long_description,
+      long_description_content_type='text/markdown',
       classifiers=['Programming Language :: Python',
                    'Programming Language :: Python :: 2',
                    'Programming Language :: Python :: 3',
