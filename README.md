@@ -8,7 +8,7 @@ optimisation score.
 They are initialised with the file paths to two PDB files:
 
 ```
-alignment = tmscoring.TMscore('structure1.pdb', 'structure2.pdb')
+alignment = tmscoring.TMscoring('structure1.pdb', 'structure2.pdb')
 
 # Find the optimal alignment
 alignment.optimise()
@@ -26,7 +26,7 @@ alignment.rmsd(**alignment.get_current_values())
 alignment.get_matrix(**alignment.get_current_values())
 
 # Save the aligned files:
-alignment.write(outputfile='aligned.pdb', append=True)
+alignment.write(outputfile='aligned.pdb', appended=True)
 ```
 
 The structures can be matched by index (default), or performing a global sequence alignment with Smith-Waterman
